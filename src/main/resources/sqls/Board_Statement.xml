@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<!-- namespace : impl패키지 경로로 통일 -->
+<mapper namespace="com.nike.geo.model.BoardDaoImpl">
+
+	<select id="announcements" resultType="BoardVo">
+	SELECT BO_NO,b.EMP_NO,BO_STATUS,
+		BO_TITLE,BO_CONTENT ,
+		BO_REGDATE,(SELECT COUNT(*) FROM LIKER l WHERE l.BO_NO=b.BO_NO) AS BO_LIKE_COUNT,
+		(SELECT COUNT(*) FROM VIEW_COUNT v WHERE v.BO_NO = b.BO_NO)	AS BO_VIEW_COUNT,
+		BO_DEL_YN ,b.MOD_ID ,b.MOD_DATE ,e.EMP_NAME AS EMP_NAME
+			FROM BO b
+			INNER JOIN EMP e
+			ON b.EMP_NO = e.EMP_NO
+			WHERE BO_STATUS ='announcements' AND BO_DEL_YN ='N'
+			ORDER BY BO_REGDATE DESC
+	</select>
+	
+	<select id="nomalBoard" resultType="BoardVo">
+	SELECT BO_NO,b.EMP_NO,BO_STATUS,
+		BO_TITLE,BO_CONTENT ,
+		BO_REGDATE,(SELECT COUNT(*) FROM LIKER l WHERE l.BO_NO=b.BO_NO) AS BO_LIKE_COUNT,
+		(SELECT COUNT(*) FROM VIEW_COUNT v WHERE v.BO_NO = b.BO_NO)	AS BO_VIEW_COUNT,
+		BO_DEL_YN ,b.MOD_ID ,b.MOD_DATE, e.EMP_NAME AS EMP_NAME
+			FROM BO b
+			INNER JOIN EMP e
+			ON b.EMP_NO = e.EMP_NO
+			WHERE BO_STATUS ='nomalBoard' AND BO_DEL_YN ='N'
+			ORDER BY BO_REGDATE DESC
+	</select>
+	
+	<select id="delBoard" resultType="BoardVo">
+	SELECT BO_NO,b.EMP_NO,BO_STATUS,
+		BO_TITLE,BO_CONTENT ,
+		BO_REGDATE,(SELECT COUNT(*) FROM LIKER l WHERE l.BO_NO=b.BO_NO) AS BO_LIKE_COUNT,
+		(SELECT COUNT(*) FROM VIEW_COUNT v WHERE v.BO_NO = b.BO_NO)	AS BO_VIEW_COUNT,
+		BO_DEL_YN ,b.MOD_ID ,b.MOD_DATE , e.EMP_NAME AS EMP_NAME
+			FROM BO b
+			INNER JOIN EMP e
+			ON b.EMP_NO = e.EMP_NO
+			WHERE BO_DEL_YN ='Y'
+			ORDER BY BO_REGDATE DESC
+	</select>
+	
+	<insert id="insertBoard">
+
+	 <selectKey keyProperty="bo_no" resultType="int" order="BEFORE">
+        SELECT BO_NO_SEQ.NEXTVAL
+        FROM DUAL
+     </selectKey>
+	INSERT INTO BO (BO_NO,BO_TITLE,EMP_NO,
+			BO_REGDATE,BO_LIKE_COUNT,BO_VIEW_COUNT
+			,BO_CONTENT ,BO_STATUS,BO_DEL_YN,
+			REG_ID,REG_DATE,MOD_ID
+			,MOD_DATE)
+	VALUES(#{bo_no},#{bo_title},#{emp_no},
+			SYSDATE,0,0
+			,#{bo_content},#{bo_status},'N'
+			,#{emp_no},SYSDAT  E,#{emp_no}
+			,SYSDATE)
+	</insert>
+	
+	<select id="detailBoard" resultType="BoardVo">
+	SELECT BO_NO,B.EMP_NO,E.EMP_NAME AS EMP_NAME,BO_STATUS,
+			BO_TITLE,BO_CONTENT ,BO_REGDATE,
+			BO_DEL_YN ,	B.MOD_ID ,B.MOD_DATE ,
+			(SELECT COUNT(*) FROM LIKER l WHERE l.BO_NO=B.BO_NO) AS BO_LIKE_COUNT,
+		(SELECT COUNT(*) FROM VIEW_COUNT v WHERE v.BO_NO = B.BO_NO)	AS BO_VIEW_COUNT
+		FROM BO B
+		INNER JOIN EMP E
+		ON B.EMP_NO = E.EMP_NO
+		WHERE BO_NO=#{bo_no}
+	</select>
+	
+	<update id="modifyBoard">
+	UPDATE BO 
+		SET BO_TITLE =#{bo_title}, BO_CONTENT =#{bo_content} ,MOD_DATE =SYSDATE, MOD_ID=#{emp_no}
+		WHERE BO_NO = #{bo_no}
+	</update>
+
+	
+	<update id="multiDeleteBoard">
+	UPDATE BO SET BO_DEL_YN ='Y'
+		WHERE BO_NO IN 
+		<foreach collection="list" item="bo_no" open="(" separator="," close=")">
+		#{bo_no}
+		</foreach>
+	</update>
+	
+	<update id="recoveryBoard">
+	UPDATE BO SET BO_DEL_YN ='N'
+		WHERE BO_NO IN 
+		<foreach collection="list" item="bo_no" open="(" separator="," close=")">
+		#{bo_no}
+		</foreach>
+	</update>
+	
+	<delete id="realDelete">
+	DELETE FROM BO WHERE BO_NO IN 
+		<foreach collection="list" item="bo_no" open="(" separator="," close=")">
+		#{bo_no}
+		</foreach>
+	</delete>
+	
+	<!-- 게시글 한개 조회 -->
+	<select id="selectOne" resultType="BoardVo">
+	SELECT BO_NO, EMP_NO, BO_STATUS, BO_TITLE|| '(' ||(SELECT COUNT(*) FROM VIEW_COUNT WHERE BO_NO = #{bo_no}) || ')'
+		  ,  BO_REGDATE, BO_VIEW_COUNT, BO_LIKE_COUNT, BO_DEL_YN, REG_ID, REG_DATE, MOD_ID, MOD_DATE 
+		FROM BO
+		WHERE BO_NO=#{bo_no}
+	</select>
+	
+	
+	<!-- 게시글 읽은 사람 입력 -->
+	<insert id="insertReadOne">
+	INSERT INTO VIEW_COUNT (
+		SEQ, BO_NO,EMP_NO
+	)
+		VALUES((select NVL(max(SEQ),0)+1 from VIEW_COUNT ), #{bo_no}, #{emp_no})
+	</insert>
+
+	
+	<!-- 게시글 읽은 사람 조회 -->
+	<select id="searchBoardOne" resultType="java.lang.Integer">
+	SELECT COUNT(*)
+		FROM VIEW_COUNT
+		WHERE BO_NO =#{bo_no} AND EMP_NO = #{emp_no}
+	</select>
+	
+	<!-- 추천삭제 -->
+	<delete id="likeDel">
+	DELETE FROM LIKER 
+		WHERE BO_NO =#{bo_no}
+		AND EMP_NO=#{emp_no}
+	</delete>
+	
+	
+	<!-- 추천 누른사람 사람 입력 -->
+	<insert id="likeInsert">
+	INSERT INTO "LIKER" (
+		BO_NO,EMP_NO ,LIKE_YN 
+		)
+		VALUES(
+		#{bo_no},#{emp_no},'Y'
+		)
+	</insert>
+
+	
+	<!-- 추천 누른 사람 조회 -->
+	<select id="likeSearchBoardOne" resultType="java.lang.Integer">
+	SELECT COUNT(*)
+		FROM LIKER
+		WHERE BO_NO =#{bo_no} AND EMP_NO = #{emp_no}
+	</select>
+	
+	<!-- 게시글 한개 조회 -->
+	<select id="likeSelectOne" resultType="LikeVo">
+	SELECT BO_NO, EMP_NO, LIKE_YN
+	    FROM LIKER
+	    WHERE BO_NO=#{bo_no} AND EMP_NO=#{emp_no}
+	</select>
+	
+	<!-- 댓글 -->
+	<select id="commList" resultType="CommVo">
+	SELECT COMM_SEQ ,BO_NO ,c.EMP_NO ,
+			COMM_CONTENT ,COMM_DATE ,COMM_REF ,
+			COMM_STEP ,COMM_USE_YN ,COMM_DEL_YN ,
+			c.REG_ID ,c.REG_DATE ,c.MOD_ID ,c.MOD_DATE ,e.EMP_NAME AS EMP_NAME
+	FROM COMM c
+	INNER JOIN EMP e
+	ON c.EMP_NO = e.EMP_NO
+	WHERE BO_NO=#{bo_no}
+	ORDER BY c.REG_DATE DESC
+	</select>
+	
+	<!-- 댓글쓰기 -->
+	<insert id="commentInsert">
+	INSERT INTO COMM(
+		COMM_SEQ ,BO_NO ,EMP_NO ,
+		COMM_CONTENT ,COMM_DATE ,COMM_REF ,
+		COMM_STEP ,COMM_USE_YN ,COMM_DEL_YN ,
+		REG_ID ,REG_DATE ,MOD_ID ,MOD_DATE 
+	)
+	VALUES(
+		comm_seq.NEXTVAL,#{bo_no},#{emp_no},
+		#{comm_content},SYSDATE,0,
+		0,'Y','N',
+		#{emp_no},SYSDATE,#{emp_no},SYSDATE
+	)
+	</insert>
+	
+	<!-- 파일업로드 -->
+	<insert id="putFile">
+	INSERT INTO GEO."FILE" (FILE_NO, ORIGIN_NO, FILE_ONAME,
+							FILE_SNAME, FILE_SIZE, FILE_TYPE,
+							FILE_RANK, FILE_DEL_YN, REG_ID,
+							REG_DATE, MOD_ID, MOD_DATE)
+		VALUES(FILE_SEQ.NEXTVAL, #{origin_no}, #{file_oname},
+				#{file_sname}, #{file_size}, #{file_type},
+				'0', 'N',#{reg_id},
+				SYSDATE, #{reg_id}, SYSDATE)
+	</insert>
+	
+	<!-- 	첨부파일 조회 -->
+	<select id="selectFile" resultType="FileVo">
+		SELECT FILE_NO, ORIGIN_NO,FILE_ONAME,
+			FILE_SNAME, FILE_SIZE, FILE_TYPE,
+			FILE_RANK,FILE_DEL_YN,
+			REG_ID,REG_DATE,MOD_ID,MOD_DATE
+		 FROM "FILE" f 
+		 WHERE ORIGIN_NO = #{origin_no}
+		 AND FILE_TYPE =2
+		 AND FILE_DEL_YN ='N'
+	</select>
+	
+	<update id="delFile">
+	UPDATE "FILE" SET FILE_DEL_YN ='Y', MOD_ID = #{mod_id}, MOD_DATE = SYSDATE
+	WHERE FILE_TYPE =2
+	AND ORIGIN_NO =#{origin_no}
+	</update>
+	
+	
+</mapper>

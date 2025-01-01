@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<!-- namespace : impl패키지 경로로 통일 -->
+<mapper namespace="com.nike.geo.model.MsgDaoImpl">
+	
+	<!--  받은 쪽지 목록 조회 selectMsgListRecv  -->
+	<select id="selectMsgListRecv" resultType="MsgVo">
+		SELECT MSG_NO , EMP.EMP_NAME AS MSG_SEND_ID, MSG_RECV_ID ,
+				MSG_CONTENT , MSG_SEND_DATE , MSG_RECV_READ_YN ,
+				MSG_SEND_DEL_YN , MSG_RECV_DEL_YN , MSG.REG_ID ,
+				MSG.REG_DATE , MSG.MOD_ID , MSG.MOD_DATE 
+			FROM MSG INNER JOIN EMP
+				ON MSG.MSG_SEND_ID = EMP.EMP_NO
+			WHERE MSG_RECV_ID = #{msg_recv_id}
+				AND MSG_RECV_DEL_YN = 'N'
+			ORDER BY MSG_SEND_DATE DESC
+	</select>
+	
+	<!-- 보낸 쪽지 목록 조회 selectMsgListSend -->
+	<select id="selectMsgListSend" resultType="MsgVo">
+		SELECT MSG_NO , MSG_SEND_ID , EMP.EMP_NAME AS MSG_RECV_ID, 
+				MSG_CONTENT , MSG_SEND_DATE , MSG_RECV_READ_YN ,
+				MSG_SEND_DEL_YN , MSG_RECV_DEL_YN , MSG.REG_ID ,
+				MSG.REG_DATE , MSG.MOD_ID , MSG.MOD_DATE 
+			FROM MSG INNER JOIN EMP
+				ON MSG.MSG_RECV_ID = EMP.EMP_NO
+			WHERE MSG_SEND_ID = #{msg_send_id}
+				AND MSG_SEND_DEL_YN = 'N'
+			ORDER BY MSG_SEND_DATE DESC
+	</select>
+	
+	<!-- 쪽지 상세 조회 selectMsgOne -->
+	<select id="selectMsgOne" resultType="MsgVo">
+		SELECT MSG_NO , A.EMP_NAME AS MSG_SEND_ID , B.EMP_NAME AS MSG_RECV_ID ,
+                MSG_CONTENT , MSG_SEND_DATE , MSG_RECV_READ_YN ,
+                MSG_SEND_DEL_YN , MSG_RECV_DEL_YN , MSG.REG_ID ,
+                MSG.REG_DATE , MSG.MOD_ID , MSG.MOD_DATE 
+        	FROM MSG INNER JOIN EMP A 
+        		ON MSG_SEND_ID = A.EMP_NO
+        		INNER JOIN EMP B
+        			ON MSG_RECV_ID = B.EMP_NO 
+        	WHERE MSG_NO = #{msg_no}
+	</select>
+	
+	<!-- 쪽지 보내기 insertMsg -->
+	<insert id="insertMsg">
+		<selectKey keyProperty="msg_no" resultType="java.lang.Integer" order="BEFORE">
+			SELECT MSG_SEQ.NEXTVAL AS SEQ FROM DUAL
+		</selectKey>
+		INSERT INTO GEO.MSG (MSG_NO, MSG_SEND_ID, MSG_RECV_ID,
+							MSG_CONTENT, MSG_SEND_DATE, MSG_RECV_READ_YN,
+							MSG_SEND_DEL_YN, MSG_RECV_DEL_YN, REG_ID,
+							REG_DATE, MOD_ID, MOD_DATE)
+			VALUES(#{msg_no}, #{msg_send_id}, #{msg_recv_id},
+			#{msg_content}, SYSDATE, 'N',
+			'N', 'N', #{msg_send_id},
+			SYSDATE, #{msg_send_id}, SYSDATE)
+	</insert>
+	
+	<!-- 쪽지 파일 업로드 insertFile -->
+	<insert id="insertFile">
+		<selectKey keyProperty="file_no" resultType="java.lang.Integer" order="BEFORE">
+			SELECT FILE_SEQ.NEXTVAL AS SEQ FROM DUAL
+		</selectKey>
+		INSERT INTO GEO."FILE" (FILE_NO, ORIGIN_NO, FILE_ONAME,
+								FILE_SNAME, FILE_SIZE, FILE_TYPE,
+								FILE_RANK, FILE_DEL_YN, REG_ID,
+								REG_DATE, MOD_ID, MOD_DATE)
+			VALUES(#{file_no}, #{origin_no}, #{file_oname},
+					#{file_sname}, #{file_size}, '3',
+					'0', 'N', #{reg_id},
+					SYSDATE, #{reg_id}, SYSDATE)
+	</insert>
+	
+	<!-- 쪽지 파일 다운로드 selectFile -->
+	<select id="selectFile" resultType="FileVo">
+		SELECT FILE_NO, ORIGIN_NO, FILE_ONAME,
+				FILE_SNAME, FILE_SIZE, FILE_TYPE,
+				FILE_RANK, FILE_DEL_YN, REG_ID,
+				REG_DATE, MOD_ID, MOD_DATE
+			FROM GEO."FILE"
+			WHERE ORIGIN_NO = #{origin_no}
+	</select>
+	
+	<!-- 쪽지 읽기 updateMsgRead -->
+	<update id="updateMsgRead">
+		UPDATE GEO.MSG
+			SET MSG_RECV_READ_YN='Y', MOD_DATE=SYSDATE
+			WHERE MSG_NO=#{msg_no}
+	</update>
+	
+	<!-- 받은 쪽지 삭제(update) deleteMsgRecv -->
+	<update id="deleteMsgRecv">
+		UPDATE GEO.MSG
+			SET MSG_RECV_DEL_YN='Y', MOD_DATE=SYSDATE
+			WHERE MSG_NO IN
+			<foreach collection="list" item="msg_no"
+					open="(" separator="," close=")">
+				#{msg_no}
+			</foreach>
+	</update>
+	
+	<!-- 보낸 쪽지 삭제(update) deleteMsgSend -->
+	<update id="deleteMsgSend">
+		UPDATE GEO.MSG
+			SET MSG_SEND_DEL_YN='Y', MOD_DATE=SYSDATE
+			WHERE MSG_NO IN
+			<foreach collection="list" item="msg_no"
+					open="(" separator="," close=")">
+				#{msg_no}
+			</foreach>
+	</update>
+	
+	<!-- 안읽은 쪽지 갯수 확인 cntUnreadMsg -->
+	<select id="cntUnreadMsg" resultType="int">
+		SELECT COUNT(*)
+			FROM MSG
+			WHERE MSG_RECV_ID = #{msg_recv_id}
+				AND MSG_RECV_READ_YN = 'N'
+				AND MSG_RECV_DEL_YN = 'N'
+	</select>
+	
+	<!-- 안읽은 쪽지 최신순 3개 조회 selectLatestMsg -->
+	<select id="selectLatestMsg" resultType="MsgVo">
+		SELECT MSG.MSG_NO, EMP.EMP_NAME AS MSG_SEND_ID, MSG.MSG_CONTENT,
+				 MSG.MSG_SEND_DATE, EMP.EMP_IMG AS REG_DATE
+			FROM (SELECT MSG.MSG_NO, MSG_SEND_ID, MSG_CONTENT,
+						MSG_SEND_DATE, MSG_RECV_ID
+				    FROM MSG
+				    WHERE MSG_RECV_ID = #{msg_recv_id}
+				        AND MSG_RECV_READ_YN = 'N'
+				        AND MSG_RECV_DEL_YN = 'N'
+				    ORDER BY MSG_SEND_DATE DESC) MSG
+			JOIN EMP ON MSG.MSG_SEND_ID = EMP.EMP_NO
+			<![CDATA[WHERE ROWNUM <= 3]]>
+	</select>
+	
+</mapper>

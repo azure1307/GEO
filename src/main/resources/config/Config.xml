@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd" >
+<configuration>
+<!-- 타입 알리아스 각자 추가  -->
+	<typeAliases>
+	
+		<!-- 공통부분 -->
+		<typeAlias type="com.nike.geo.vo.comm.FileVo" alias="FileVo"/>
+	
+		<!-- 전자결재 -->
+		<typeAlias type="com.nike.geo.vo.appr.Ap_DocuVo" alias="Ap_DocuVo"/>
+		<typeAlias type="com.nike.geo.vo.appr.Ap_FavVo" alias="Ap_FavVo"/>
+		<typeAlias type="com.nike.geo.vo.appr.Ap_LineVo" alias="Ap_LineVo"/>
+		<typeAlias type="com.nike.geo.vo.appr.BaseVo" alias="BaseVo"/>
+
+		<!-- 쪽지 및 로그인 -->
+		<typeAlias type="com.nike.geo.vo.msg.MsgVo" alias="MsgVo"/>
+		<typeAlias type="com.nike.geo.vo.msg.NotiVo" alias="NotiVo"/>
+		
+		<!-- 캘린더 -->
+		<typeAlias type="com.nike.geo.vo.bo.BoardVo" alias="BoardVo"/>
+		<typeAlias type="com.nike.geo.vo.bo.CommVo" alias="CommVo"/>
+		<typeAlias type="com.nike.geo.vo.bo.LikeVo" alias="LikeVo"/>
+
+		<!-- 인사 -->
+		<typeAlias type="com.nike.geo.vo.hr.EmpVo" alias="EmpVo"/>
+		<typeAlias type="com.nike.geo.vo.hr.AttVo" alias="AttVo"/>
+		<typeAlias type="com.nike.geo.vo.hr.VacaVo" alias="VacaVo"/>
+		
+		<!-- 일정 -->
+ 		<typeAlias type="com.nike.geo.vo.co.CalVo" alias="CalVo"/> 
+
+		<!-- 공통테이블 -->
+		<typeAlias type="com.nike.geo.vo.comm.CommonVo" alias="CommonVo"/>
+		
+	</typeAliases>
+	<mappers>
+		<mapper resource="sqls/Approval_Statement.xml"/>
+		<mapper resource="sqls/Board_Statement.xml"/>
+		<mapper resource="sqls/Cal_Statement.xml"/>
+		<mapper resource="sqls/Hr_Statement.xml"/>
+		<mapper resource="sqls/Msg_Statement.xml"/>
+		<mapper resource="sqls/User_Statement.xml"/>
+		<mapper resource="sqls/Common_Statement.xml"/>
+	</mappers>
+</configuration>

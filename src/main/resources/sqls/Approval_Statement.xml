@@ -1,0 +1,467 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.nike.geo.model.ApprovalDaoImpl">
+
+	<!-- 북마크 -->
+	<select id="selectFavList" resultType="Ap_FavVo">
+		SELECT APF_ID, EMP_NO, APD_FORM, 
+			   APF_NAME
+		 FROM AP_FAV
+		 WHERE EMP_NO =  #{empNo}
+	</select>
+	
+	<!-- 북마크 등록 -->
+	<insert id="addFav">
+		<selectKey keyProperty="name" resultType="java.lang.String" order="BEFORE">
+			SELECT  CODE_NAME 
+                 FROM COM c 
+                 WHERE COMMON_CODE =#{apd_form}
+		</selectKey>
+	
+		 INSERT INTO AP_FAV (APF_ID, EMP_NO, APD_FORM,
+	                         REG_ID, REG_DATE, MOD_ID, 
+	                         MOD_DATE,APF_NAME )
+        			VALUES (FAV_SEQ.NEXTVAL, #{emp_no}, #{apd_form}, 
+           					#{emp_no}, SYSDATE, #{emp_no}, 
+           					SYSDATE, #{name}
+    						)
+	</insert>
+	
+	<!-- 북마크 삭제 -->
+	<delete id="delFav">
+		DELETE FROM AP_FAV
+		 WHERE EMP_NO = #{emp_no}
+		 AND APD_FORM=#{apd_form}
+	</delete>
+
+	
+	
+	
+	
+	<!--///////////////////////////////////////////////////////  -->
+	<!-- 상신하기 -->
+	
+	<!-- 임시저장 -->
+	<insert id="submit2"> 
+		INSERT INTO AP_DOCU
+				(APD_NO, EMP_NO, APD_CON, 
+				APD_STEP, APD_STATUS, APD_DAYS, 
+				APD_HALF_YN,APD_FORM, APD_CLEAR_DATE, APD_TEMP_YN, 
+				REG_ID, REG_DATE, MOD_ID, MOD_DATE)
+		VALUES(Apd_docu_seq.NEXTVAL, #{emp_no}, #{apd_con}, 
+				#{apd_step}, 'W', #{apd_days},
+				#{apd_half_yn},	#{apd_form}, SYSDATE,
+				<choose>
+					<when test='type == "상신하기"'>
+						'N'
+					</when>
+					<otherwise>
+						'Y'
+					</otherwise>
+				</choose> 
+				 
+				,#{emp_no},SYSDATE, #{emp_no}, SYSDATE)    
+	</insert>
+	
+<!-- 연차 일정 추가 -->
+<insert id="insertVac" parameterType="java.util.Map">
+				INSERT INTO CAL(CAL_NO,EMP_NO,CAL_TITLE, CAL_CONTENT, 
+                     CAL_START, CAL_STOP,CAL_OPEN_YN,REG_DATE)
+				VALUES(CAL_SEQ.NEXTVAL,#{submit_id},
+						 <choose>
+								<when test='apd_half_yn =="A"'>
+								 	CONCAT(#{submit_name}, ' 오전반차')
+								</when>
+								<when test='apd_half_yn =="P"'>
+									CONCAT(#{submit_name}, ' 오후반차')
+								</when>
+								<otherwise>
+									CONCAT(#{submit_name}, ' 연차')
+								</otherwise>
+							</choose>
+				 		, '휴가',
+					  TO_DATE(#{cal_start}, 'YYYY/MM/DD HH24:MI'), 
+					  TO_DATE(#{cal_stop}, 'YYYY/MM/DD HH24:MI')
+					  , 'Y',SYSDATE)
+</insert>
+
+	
+	<!-- 결재라인 : 직급 순서 받아오기 -->
+	<select id="selectPos" resultType="java.lang.Integer" >
+	SELECT c."REF"
+		FROM COM c
+		JOIN EMP e ON c.COMMON_CODE = e.EMP_POS
+		WHERE e.EMP_NO = #{emp_no}
+	</select>
+	
+	<!-- 결재라인 : 서류 번호 받아오기 -->
+	<select id="selctAPD" resultType="java.lang.Integer">
+		SELECT MAX(APD_NO)
+ 			FROM AP_DOCU
+	</select>
+	
+	<!--결재라인 추가  -->
+	<insert id="putLine">
+		INSERT INTO GEO.AP_LINE
+			(APL_NO, APD_NO, EMP_NO, 
+			APL_ORDER, APL_DATE,
+			REG_ID, REG_DATE, MOD_ID, MOD_DATE)
+		VALUES(APLINE_SEQ.NEXTVAL, #{apd_no}, #{emp_no}, 
+				#{apl_order}, SYSDATE, 
+				#{emp_no}, SYSDATE, #{emp_no}, SYSDATE)
+	</insert>	
+	
+	
+	<!-- 참조라인 추가 -->
+	<insert id="putRef">
+		INSERT INTO AP_RF
+				(APR_NO, APD_NO, APR_REF, 
+				REG_ID, REG_DATE, MOD_ID, MOD_DATE)
+			VALUES(APREF_SEQ.NEXTVAL, #{apd_no}, #{apr_ref}, 
+					#{emp_no}, SYSDATE, #{emp_no}, SYSDATE)
+	</insert>
+	
+	<!--  -->
+	<!-- 파일 -->
+	<!--결재 파일 추가  -->
+	<insert id="putFile">
+		INSERT INTO GEO."FILE" (FILE_NO, ORIGIN_NO, FILE_ONAME,
+								FILE_SNAME, FILE_SIZE, FILE_TYPE,
+								FILE_RANK, FILE_DEL_YN, REG_ID,
+								REG_DATE, MOD_ID, MOD_DATE)
+			VALUES(FILE_SEQ.NEXTVAL, #{origin_no}, #{file_oname},
+					#{file_sname}, #{file_size}, #{file_type},
+					'0', 'N', #{reg_id},
+					SYSDATE, #{reg_id}, SYSDATE)
+	</insert>
+	
+	
+	
+	<!-- ///////////////////////////////////////////// -->
+	<!-- 문서함 -->
+	<!-- 결재문서함 목록 조회 -->
+	<!-- 대기.반려.철회 상관없이 모든 거 다 나오게 -->
+	<select id="selectApproval" resultType="Ap_DocuVo">
+	SELECT APD_NO,EMP_NO , SUBSTR(APD_CON, 1, 10) AS APD_CON,
+				APD_STEP ,APD_STATUS ,APD_DAYS ,
+				APD_HALF_YN ,APD_FORM ,APD_CLEAR_DATE ,APD_TEMP_YN ,
+				REG_ID ,REG_DATE ,MOD_ID ,MOD_DATE 
+ 		FROM AP_DOCU ad 
+ 		WHERE APD_NO IN (SELECT APD_NO 
+					 FROM AP_LINE al 
+					 WHERE EMP_NO = #{emp_no})
+ 		AND APD_TEMP_YN = 'N'
+ 		ORDER BY REG_DATE DESC
+	</select>
+	
+	<!-- 상신함 / 임시저장 -->
+	<select id="selectSubmit_Docu" resultType="Ap_DocuVo">
+		SELECT APD_NO,EMP_NO , SUBSTR(APD_CON, 1, 10) AS APD_CON,
+				APD_STEP ,APD_STATUS ,APD_DAYS ,
+				APD_HALF_YN ,APD_FORM ,APD_CLEAR_DATE ,APD_TEMP_YN ,
+				REG_ID ,REG_DATE ,MOD_ID ,MOD_DATE 
+ 		FROM AP_DOCU ad 
+ 		WHERE EMP_NO = #{emp_no}
+ 		AND  APD_TEMP_YN = #{apd_temp_yn}
+ 		ORDER BY REG_DATE DESC
+	</select>
+	
+	<!-- 참조함 -->
+	<select id="selRef_Docu" resultType="Ap_DocuVo">
+		SELECT APD_NO,EMP_NO , SUBSTR(APD_CON, 1, 10) AS APD_CON,
+				APD_STEP ,APD_STATUS ,APD_DAYS ,
+				APD_HALF_YN ,APD_FORM ,APD_CLEAR_DATE ,APD_TEMP_YN ,
+				REG_ID ,REG_DATE ,MOD_ID ,MOD_DATE 
+		 FROM AP_DOCU ad 
+		 WHERE APD_TEMP_YN= 'N'
+		 AND ad.APD_NO IN (SELECT APD_NO 
+		 FROM AP_RF ar 
+		 WHERE APR_REF = #{emp_no})
+	</select>
+	
+	
+	
+	<!-- 상태별로 가져오기 -->
+	<select id="selectStatus" resultType="Ap_DocuVo">
+		SELECT APD_NO,EMP_NO , SUBSTR(APD_CON, 1, 10) AS APD_CON,
+				APD_STEP ,APD_STATUS ,APD_DAYS ,
+				APD_HALF_YN ,APD_FORM ,APD_CLEAR_DATE ,APD_TEMP_YN ,
+				REG_ID ,REG_DATE ,MOD_ID ,MOD_DATE 
+ 		FROM AP_DOCU ad 
+ 		WHERE APD_NO IN (SELECT APD_NO 
+					 FROM AP_LINE al 
+					 WHERE EMP_NO = #{emp_no})
+ 		AND APD_TEMP_YN = 'N'
+ 		AND APD_STATUS =#{apd_status}
+ 		ORDER BY REG_DATE DESC
+	</select>
+	
+	
+	
+	
+	
+	
+	<!-- //////////////////결재하기 -->
+	<!-- 결재라인 수정 -->
+	<update id="updateApprLine">
+	    UPDATE AP_LINE 
+	    SET COL_TYPE =
+	        <choose>
+	            <when test='last == "1"'>
+	                1
+	            </when>
+	            <otherwise>
+	                2
+	            </otherwise>
+	        </choose>
+	        <if test='last == "1"'>
+	            , FILE_ONAME = #{file_oname}
+	        </if>
+	        , APL_STATUS = 1,
+	        MOD_DATE = SYSDATE
+	    WHERE APL_NO = #{apl_no}
+	</update>
+
+
+	
+	<update id="updateDocu">
+		UPDATE AP_DOCU SET APD_STATUS=#{apd_status}, APD_CLEAR_DATE=SYSDATE,
+							MOD_DATE=SYSDATE,MOD_ID=#{emp_no}
+			WHERE APD_NO=#{apd_no}
+	</update>
+	
+	<!-- 결재라인 수 조회 -->
+	<select id="selStep" resultType="java.lang.Integer">
+		SELECT APD_STEP 
+		 FROM AP_DOCU ad
+		 WHERE APD_NO = #{apd_no}
+	</select>
+	
+	<!-- 결재완료 한 사람 수 -->
+	<select id="selComplete" resultType="java.lang.Integer">
+		SELECT NVL(COUNT(APL_STATUS),0) 
+		 FROM AP_LINE al 
+		 WHERE al.APL_STATUS =1
+		 AND APD_NO =#{apd_no}
+	</select>
+	
+	<!-- //////////////////////////////////////////////////////////////// -->
+	<!-- 상세조회 -->
+	<!-- 문서번호로 상세 조회 -->
+	<select id="selectDeatil" resultType="Ap_DocuVo">
+		SELECT ad.APD_NO,EMP_NO ,ad.APD_CON ,
+				ad.APD_STEP ,ad.APD_STATUS ,ad.APD_DAYS ,
+				ad.APD_HALF_YN ,ad.APD_FORM ,ad.APD_CLEAR_DATE ,ad.APD_TEMP_YN ,
+				ad.REG_ID ,ad.REG_DATE ,ad.MOD_ID ,ad.MOD_DATE ,e.EMP_NAME
+ 		FROM AP_DOCU ad 
+ 		JOIN  EMP e  
+		USING (EMP_NO)
+		WHERE EMP_NO  = (SELECT EMP_NO FROM AP_DOCU ad2 WHERE APD_NO= #{apd_no})
+		AND APD_NO = #{apd_no}
+	</select>
+	
+	<!-- 결재자 순서대로 조회 -->
+	<select id="selectLine" resultType="Ap_LineVo">
+		SELECT al.APL_NO, al.APD_NO, al.EMP_NO,
+		       al.APL_ORDER, TO_CHAR(NVL(al.APL_DATE, SYSDATE), 'YY-MM-DD HH24:MI') AS APL_DATE,
+		       al.APL_STATUS, al.APL_MSG,
+		       al.REG_ID, TO_CHAR(al.REG_DATE, 'YY-MM-DD HH24:MI') AS REG_DATE,
+		       al.MOD_ID, TO_CHAR(al.MOD_DATE, 'YY-MM-DD HH24:MI') AS MOD_DATE,
+		       al.FILE_ONAME, e.EMP_NAME, al.COL_TYPE, b.ENCODING
+			FROM AP_LINE al
+			INNER JOIN EMP e ON al.EMP_NO = e.EMP_NO
+			LEFT JOIN BASE b ON al.EMP_NO = b.EMP_NO
+			WHERE al.APD_NO = #{apd_no}
+			AND (b.DELFLAG = 'N' OR b.DELFLAG IS NULL) 
+			ORDER BY al.APL_ORDER
+	</select>
+	
+
+	
+	
+	<!-- 반려메시지 조회 -->
+	<select id="sel_Msg" resultType="java.lang.String">
+		SELECT APL_MSG 
+		 FROM AP_LINE al 
+		 	WHERE APD_NO = #{apd_no}
+			AND APL_MSG IS NOT NULL 
+	</select>
+	
+<!-- 	첨부파일 조회 -->
+	<select id="selectFile" resultType="FileVo">
+		SELECT FILE_NO, ORIGIN_NO,FILE_ONAME,
+			FILE_SNAME, FILE_SIZE, FILE_TYPE,
+			FILE_RANK,FILE_DEL_YN,
+			REG_ID,REG_DATE,MOD_ID,MOD_DATE
+		 FROM "FILE" f 
+		 WHERE ORIGIN_NO = #{origin_no}
+	</select>
+	
+	<!-- 최소 결재 순서 찾기 -->
+	<select id="selMinOrder" resultType="java.lang.Integer">
+		SELECT MIN(APL_ORDER) AS APL_ORDER
+		 FROM AP_LINE al 
+		 WHERE APD_NO = #{apd_no}
+		 AND APL_STATUS = 0
+	</select>
+	
+	<!-- 본인 순서 찾기 -->
+	<select id="selMyOrder" resultType="java.lang.Integer">
+		SELECT APL_ORDER
+		 FROM AP_LINE al 
+		 WHERE APD_NO =#{apd_no}
+		 AND EMP_NO =#{emp_no}
+	</select>
+	
+	<!-- 본인 서명 찾기 : 파일 -->
+	<select id="selMySign" resultType="FileVo">
+		SELECT FILE_NO, ORIGIN_NO,FILE_ONAME,
+			FILE_SNAME, FILE_SIZE, FILE_TYPE,
+			FILE_RANK,FILE_DEL_YN,
+			REG_ID,REG_DATE,MOD_ID,MOD_DATE
+		 FROM "FILE" f 
+		 WHERE REG_ID = #{emp_no}
+		 AND FILE_DEL_YN = 'N'
+		 AND FILE_TYPE=4
+	</select>
+	
+	<select id="selectSignature" resultType="BaseVo">
+		SELECT EMP_NO, DELFLAG, ENCODING
+		 FROM BASE
+		 WHERE EMP_NO = #{emp_no}
+		 AND DELFLAG = 'N'
+	</select>
+	
+	<!-- 반려하기 -->
+	<!-- 결재번호 조회 -->
+	<select id="selectAPL_NO" resultType="java.lang.Integer">
+		SELECT APL_NO 
+		 FROM AP_LINE al
+		 WHERE al.APD_NO = #{apd_no}
+		 AND EMP_NO =#{emp_no}
+	</select>
+	
+	<!-- 결재라인 수정 -->
+	<update id="updateReturn">
+		UPDATE AP_LINE 
+			SET APL_DATE=SYSDATE, APL_STATUS=2, APL_MSG=#{apl_msg}, MOD_ID=#{emp_no}, MOD_DATE=SYSDATE
+			WHERE APL_NO=#{apl_no}
+	</update>
+	
+	<!-- 결재라인 상태 수정 -->
+	<update id="updateLineStatus">
+		UPDATE AP_LINE 
+			SET APL_DATE=SYSDATE, APL_STATUS=#{apl_status}, MOD_ID=#{emp_no}, MOD_DATE=SYSDATE
+			WHERE APL_NO=#{apl_no}
+	</update>
+	
+	<!-- 서류 상태 수정 -->
+	<update id="update_aStatus">
+		UPDATE  AP_DOCU SET APD_STATUS =#{apd_status} WHERE APD_NO =#{apd_no}
+	</update>
+	
+	<!-- 서명 다중 삭제 -->
+	<update id="delSign">
+		UPDATE "FILE" f SET FILE_DEL_YN ='Y'
+		 WHERE REG_ID =#{emp_no}
+		 AND FILE_ONAME IN
+		  <foreach collection="list" item="file_oname" open="(" separator="," close=")">
+         #{file_oname}
+         </foreach>
+	</update>
+
+<!--  임시저장 삭제 --> 
+	<delete id="delTemp">
+		DELETE FROM GEO.AP_DOCU
+			WHERE APD_NO IN
+			<foreach collection="list" item="apd_no" open="(" separator="," close=")">
+	         	#{apd_no}
+	         </foreach>
+	</delete>
+	
+	<!-- 철회 -->
+	<update id="cancelDocu">
+		UPDATE AP_DOCU SET APD_TEMP_YN='Y'
+		 	WHERE APD_NO=#{apd_no}
+	</update>
+	
+	<!-- 연차일수 빼기 -->
+	<update id="updateVaCheck">
+	    UPDATE VA_check
+	    SET va_check_num = (SELECT VA_CHECK_NUM - #{minus}
+	                        FROM VA_check 
+	                        WHERE emp_no =  #{submit_id} 
+	                        AND TO_CHAR(VA_YEAR, 'YYYY') = #{year})
+	    WHERE emp_no = #{submit_id} 
+	    AND TO_CHAR(VA_YEAR, 'YYYY') = #{year}
+	</update>
+	
+	<!-- 연차 히스토리쌓기 -->
+	<insert id="insertHistory">
+		INSERT INTO GEO.VA
+			(EMP_NO, APD_NO, VA_USE_NUM, 
+			VA_USE_DATE, 
+			REG_ID, REG_DATE, MOD_ID, MOD_DATE)
+			VALUES(#{submit_id}, #{apd_no}, 
+			 	<choose>
+					<when test='apd_half_yn == "N"'>
+						1
+					</when>
+					<otherwise>
+						0.5
+					</otherwise>
+				</choose> 
+			,TO_DATE(#{days}, 'YYYY-MM-DD') , 
+			#{emp_no}, SYSDATE, #{emp_no}, SYSDATE)
+	</insert>
+	
+	<!-- 마지막 결재자 인지 확인 -->
+	<select id="checkLast" resultType="java.lang.Integer">
+		SELECT COUNT(APL_NO) 
+		 FROM AP_LINE al 
+		 WHERE APD_NO = #{apd_no}
+		 AND APL_STATUS =0
+	</select>
+	
+	<insert id="insertBase">
+		INSERT INTO GEO.BASE
+			(EMP_NO, REG_DATE, ENCODING)
+			VALUES(#{emp_no}, SYSDATE, #{encoding})
+	</insert>
+	
+	<update id="deleteSignature">
+		UPDATE BASE SET DELFLAG = 'Y'
+		WHERE
+		<foreach collection="list" item="encoding" open="(" separator=" OR " close=")">
+        	DBMS_LOB.COMPARE(ENCODING, #{encoding}) = 0
+    	</foreach>
+	</update>
+	
+	<!-- 결재알림 정보 조회 selectNotiAppr -->
+	<select id="selectNotiAppr" resultType="Ap_DocuVo">
+		SELECT APD_NO, APD_CON, REG_ID
+			FROM AP_DOCU
+			WHERE APD_NO = #{apd_no}
+	</select>
+	
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
