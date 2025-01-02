@@ -1,9 +1,9 @@
 # 🤝 그룹웨어 프로젝트 GEO
 
 # 1. 소개
-그룹웨어는 회사생활에 필요한 전자결재, 사원관리, 일정관리 등의 기능을 하나의 페이지에서 이용할 수 있는 소프트웨어입니다.<br>
-프로젝트명인 GEO는 geography(지리학적인)라는 단어에서 뜻을 따왔습니다. 지구 어디에서든, 누구든 사용할 수 있는 웹페이지<br>
-가 되었으면 좋겠다는 뜻을 담아 지은 이름입니다.
+그룹웨어는 회사생활에 필요한 전자결재, 사원관리, 일정관리 등의 기능을 하나의 페이지에서 이용할 수 있는 소프트<br>
+웨어입니다. 프로젝트명인 GEO는 geography(지리학적인)라는 단어에서 뜻을 따왔습니다. 지구 어디에서든, 누구든 사
+용할 수 있는 웹페이지가 되었으면 좋겠다는 뜻을 담아 지은 이름입니다.
 
 # 2. 팀원 역할분담
 강정민(조장): 전자결재<br>
@@ -14,7 +14,7 @@
 
 # 3. 개발환경
 ## 백엔드
-<img src="https://img.shields.io/badge/spring-6DB33F?style=for-the-badge&logo=spring&logoColor=white"> <img src="https://img.shields.io/badge/java-007396?style=for-the-badge&logo=java&logoColor=white"> <img src="https://img.shields.io/badge/jsp-007396?style=for-the-badge&logo=java&logoColor=white"> <img src="https://img.shields.io/badge/servlet-4CAF50?style=for-the-badge&logo=java&logoColor=white"> <img src="https://img.shields.io/badge/mybatis-FF5733?style=for-the-badge&logo=mybatis&logoColor=white">
+<img src="https://img.shields.io/badge/spring-6DB33F?style=for-the-badge&logo=spring&logoColor=white"> <img src="https://img.shields.io/badge/java-007396?style=for-the-badge&logo=java&logoColor=white"> <img src="https://img.shields.io/badge/jsp-007396?style=for-the-badge&logo=java&logoColor=white"> <img src="https://img.shields.io/badge/mybatis-FF5733?style=for-the-badge&logo=mybatis&logoColor=white">
 <img src="https://img.shields.io/badge/apache tomcat-F8DC75?style=for-the-badge&logo=apachetomcat&logoColor=white">
 <img src="https://img.shields.io/badge/oracle-F80000?style=for-the-badge&logo=oracle&logoColor=white">
 
@@ -31,6 +31,7 @@
 
 
 # 4. 프로젝트 구조
+
 
 # 5. 개발기간
 
